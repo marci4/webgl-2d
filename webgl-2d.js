@@ -1200,11 +1200,51 @@
       }
     };
 
-    gl.quadraticCurveTo = function quadraticCurveTo(cp1x, cp1y, x, y) {};
+    gl.quadraticApproximateCount = 50;
+    gl.quadraticCurveTo = function quadraticCurveTo(hx, hy, x, y) {
+      if (subPaths.length) {
+        var verts = subPaths[subPaths.length-1].verts,
+          fromx = verts[verts.length-4],
+          fromy = verts[verts.length-3],
+          t, i, tx, ty;
+        for(var j = 0; j < gl.quadraticApproximateCount; j++){
+          t = j / gl.quadraticApproximateCount;
+          i = 1 - t;
+          tx = i*i*fromx + 2*i*t*hx + t*t*x;
+          ty = i*i*fromy + 2*i*t*hy + t*t*y;
+          verts.push(tx, ty, 0, 0);
+        }
+      } else {
+        gl.moveTo(x, y);
+      }
+    };
 
-    gl.bezierCurveTo = function bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y) {};
+    gl.bezierApproximateCount = 50;
+    gl.bezierCurveTo = function quadraticCurveTo(h1x, h1y, h2x, h2y, x, y) {
+      if (subPaths.length) {
+        var verts = subPaths[subPaths.length-1].verts,
+          fromx = verts[verts.length-4],
+          fromy = verts[verts.length-3],
+          t, i, tx, ty;
+        for(var j = 0; j < gl.bezierApproximateCount; j++){
+          t = j / gl.bezierApproximateCount;
+          i = 1 - t;
+          tx = i*i*i*fromx + 3*i*i*t*h1x + 3*i*t*t*h2x + t*t*t*x;
+          ty = i*i*i*fromy + 3*i*i*t*h1y + 3*i*t*t*h2y + t*t*t*y;
+          verts.push(tx, ty, 0, 0);
+        }
+      } else {
+        gl.moveTo(x, y);
+      }
+    };
 
-    gl.arcTo = function arcTo() {};
+    gl.arcTo = function arcTo() {
+      if (subPaths.length) {
+        ;
+      } else {
+        gl.moveTo(x, y);
+      }
+    };
 
     // Adds a closed rect subpath and creates a new subpath
     gl.rect = function rect(x, y, w, h) {
@@ -1215,7 +1255,41 @@
       gl.closePath();
     };
 
-    gl.arc = function arc(x, y, radius, startAngle, endAngle, anticlockwise) {};
+    gl.arcApproximateCount = 100;
+    gl.arc = function arc(cx, cy, radius, startAngle, endAngle, anticlockwise) {
+      var verts = subPaths[subPaths.length -1].verts;
+
+      // startAngle
+      var x = cx + radius * Math.cos(startAngle),
+          y = cy + radius * Math.sin(startAngle);
+      verts.push(x, y, 0, 0);
+
+      while(startAngle > Math.PI*2)
+        startAngle -= Math.PI*2;
+      while(endAngle > Math.PI*2)
+        endAngle -= Math.PI*2;
+      while(startAngle < -Math.PI*2)
+        startAngle += Math.PI*2;
+      while(endAngle < -Math.PI*2)
+        endAngle += Math.PI*2;
+      if(startAngle == endAngle)
+        return;
+
+      var count = 1 / gl.arcApproximateCount,
+          fixed = gl.arcApproximateCount,
+        t;
+      if(anticlockwise){
+        endAngle -= Math.PI * 2;
+        count = -count;
+      }
+      for(var i = startAngle; (i > endAngle && anticlockwise) || (i < endAngle && !anticlockwise); i += count){
+        if(t == (t = (i*fixed | 0) / fixed))
+          continue;
+        x = cx + radius * Math.cos(t);
+        y = cy + radius * Math.sin(t);
+        verts.push(x, y, 0, 0);
+      }
+    };
 
     function fillSubPath(index) {
       var transform = gl2d.transform;
