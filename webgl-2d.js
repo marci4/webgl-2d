@@ -280,7 +280,7 @@
         if ((gl2d.options.force || context === "webgl-2d") && !(canvas.width === 0 || canvas.height === 0)) {
           if (gl2d.gl) { return gl2d.gl; }
 
-          var gl = gl2d.gl = gl2d.canvas.$getContext("experimental-webgl");
+          var gl = gl2d.gl = gl2d.canvas.$getContext("webgl");
 
           // If we failed to get a WebGL context, return a normal 2D context instead.
           if ((typeof (gl) === "undefined") || (gl === null)) {
